@@ -28,7 +28,7 @@ from typing import Optional
 # ─── Observability Imports ────────────────────────────────────────────────────
 from prometheus_fastapi_instrumentator import Instrumentator
 from opentelemetry import trace
-from opentelemetry.sdk.resources import RESOURCE_ATTRIBUTES, Resource
+from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
@@ -66,7 +66,7 @@ app = FastAPI(title="Auth Service", version="1.0.0")
 # ─── OpenTelemetry Setup ──────────────────────────────────────────────────────
 OTEL_ENDPOINT = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://jaeger-all-in-one:4318")
 resource = Resource(attributes={
-    RESOURCE_ATTRIBUTES.SERVICE_NAME: "auth-service"
+    "service.name": "auth-service"
 })
 provider = TracerProvider(resource=resource)
 processor = BatchSpanProcessor(OTLPSpanExporter(endpoint=f"{OTEL_ENDPOINT}/v1/traces"))
@@ -74,11 +74,7 @@ provider.add_span_processor(processor)
 trace.set_tracer_provider(provider)
 
 FastAPIInstrumentor.instrument_app(app)
-
-# ─── Prometheus Setup ─────────────────────────────────────────────────────────
-@app.on_event("startup")
-async def startup_event():
-    Instrumentator().instrument(app).expose(app)
+Instrumentator().instrument(app).expose(app)
 
 SECRET_KEY = os.getenv("JWT_SECRET", "archaIc-secret-key-2024")
 
