@@ -116,9 +116,57 @@ AUTH_SERVICE_URL=http://localhost:8001 DB_SERVICE_URL=http://localhost:8002 STRI
 uvicorn main:app --port 8004 --reload
 ```
 
+### 4. Run On Alternate Local Ports (when defaults are busy)
+
+Use this mapping:
+
+- `auth -> 8101`
+- `db -> 8102`
+- `product -> 8103`
+- `payment -> 8104`
+- `dashboard -> 7000`
+
+#### Option A: Kubernetes port-forward (auth/db/product from cluster)
+
+```bash
+# Run each in a separate terminal
+kubectl port-forward svc/auth-service 8101:8001 -n archaics
+kubectl port-forward svc/db-service 8102:8002 -n archaics
+kubectl port-forward svc/product-service 8103:8003 -n archaics
+
+# If payment-service exists in your cluster:
+# kubectl port-forward svc/payment-service 8104:8004 -n archaics
+```
+
+#### Option B: Bare-metal services on alternate ports
+
+```bash
+# Terminal 1 — Auth
+cd services/auth
+pip install -r requirements.txt
+uvicorn main:app --port 8101 --reload
+
+# Terminal 2 — DB
+cd services/db
+pip install -r requirements.txt
+uvicorn main:app --port 8102 --reload
+
+# Terminal 3 — Product
+cd services/product
+pip install -r requirements.txt
+AUTH_SERVICE_URL=http://localhost:8101 DB_SERVICE_URL=http://localhost:8102 \
+uvicorn main:app --port 8103 --reload
+
+# Terminal 4 — Payment
+cd services/payment
+pip install -r requirements.txt
+AUTH_SERVICE_URL=http://localhost:8101 DB_SERVICE_URL=http://localhost:8102 STRIPE_API_KEY=sk_test_dummy \
+uvicorn main:app --port 8104 --reload
+```
+
 ### Dashboard
 
-The repo now includes a Next.js dashboard at `http://localhost:3000/dashboard`.
+The repo now includes a Next.js dashboard at `http://localhost:7000/dashboard`.
 
 ```bash
 # Install frontend dependencies
@@ -137,6 +185,17 @@ By default the dashboard targets:
 - `PAYMENT_SERVICE_URL=http://127.0.0.1:8004`
 
 Override those environment variables before `npm run dev` if your services are exposed elsewhere.
+
+Example (dashboard pointed at alternate local ports):
+
+```bash
+cd apps/dashboard
+AUTH_SERVICE_URL=http://127.0.0.1:8101 \
+DB_SERVICE_URL=http://127.0.0.1:8102 \
+PRODUCT_SERVICE_URL=http://127.0.0.1:8103 \
+PAYMENT_SERVICE_URL=http://127.0.0.1:8104 \
+npm run dev
+```
 
 ---
 
